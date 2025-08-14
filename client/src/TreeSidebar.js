@@ -1,13 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 import Tree from 'react-d3-tree';
 import axios from 'axios';
 import './TreeSidebar.css';
 
-function TreeSidebar({ sessionId, onBranchSwitch, currentBranch }) {
+function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOpen }) {
   const [treeData, setTreeData] = useState(null);
-  const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const treeContainer = useRef(null);
+
+  // Keyboard shortcut for toggling sidebar
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Check for Ctrl+B or Cmd+B
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        // Don't toggle if user is typing in an input
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          setIsOpen(prev => !prev);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [setIsOpen]);
 
   const fetchTree = async () => {
     if (!sessionId) return;
@@ -161,18 +178,9 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch }) {
   };
 
   return (
-    <>
-      <button
-        className={`sidebar-toggle ${isOpen ? 'open' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
-        title={isOpen ? 'Close tree view' : 'Open tree view'}
-      >
-        {isOpen ? '◀' : '🌳'}
-      </button>
-      
-      <div className={`tree-sidebar ${isOpen ? 'open' : ''}`}>
+    <div className={`tree-sidebar ${isOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <h2>Conversation Tree</h2>
+          <h2>Conversation Map</h2>
           <button
             className="refresh-btn"
             onClick={fetchTree}
@@ -213,8 +221,19 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch }) {
           </div>
         </div>
       </div>
-    </>
   );
 }
+
+TreeSidebar.propTypes = {
+  sessionId: PropTypes.string,
+  onBranchSwitch: PropTypes.func,
+  currentBranch: PropTypes.arrayOf(PropTypes.string),
+  isOpen: PropTypes.bool.isRequired,
+  setIsOpen: PropTypes.func.isRequired
+};
+
+TreeSidebar.defaultProps = {
+  currentBranch: []
+};
 
 export default TreeSidebar;

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import TreeSidebar from './TreeSidebar';
 import Toast from './Toast';
 import './App.css';
@@ -10,7 +12,6 @@ function App() {
   const [sessionId, setSessionId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [currentBranch, setCurrentBranch] = useState([]);
-  const [treeData, setTreeData] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '' });
   const messagesEndRef = useRef(null);
 
@@ -35,12 +36,6 @@ function App() {
     initializeSession();
   }, []);
 
-  useEffect(() => {
-    if (sessionId) {
-      fetchTreeData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
 
   const fetchMessages = async () => {
     if (!sessionId) return;
@@ -54,16 +49,6 @@ function App() {
     }
   };
 
-  const fetchTreeData = async () => {
-    if (!sessionId) return;
-    
-    try {
-      const response = await axios.get(`http://localhost:3001/api/session/${sessionId}/tree`);
-      setTreeData(response.data.tree);
-    } catch (error) {
-      console.error('Failed to fetch tree data:', error);
-    }
-  };
 
   const showToast = (message) => {
     setToast({ show: true, message });
@@ -80,18 +65,16 @@ function App() {
       });
       
       await fetchMessages();
-      await fetchTreeData();
-      showToast('🌿 Branch created!');
+      showToast('🗺 New path created!');
     } catch (error) {
       console.error('Failed to create branch:', error);
-      showToast('Failed to create branch');
+      showToast('Failed to create path');
     }
   };
 
   const handleBranchSwitch = async () => {
     await fetchMessages();
-    await fetchTreeData();
-    showToast('📍 Switched branch');
+    showToast('📍 Switched path');
   };
 
   const sendMessage = async (e) => {
@@ -128,7 +111,6 @@ function App() {
       setMessages(prev => [...prev, assistantMessage]);
       
       await fetchMessages();
-      await fetchTreeData();
     } catch (error) {
       console.error('Failed to send message:', error);
       const tempErrorId = `temp-error-${Date.now()}`;
@@ -144,8 +126,10 @@ function App() {
     }
   };
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
-    <div className="App">
+    <div className={`App ${isSidebarOpen ? 'sidebar-open' : ''}`}>
       <Toast 
         message={toast.message} 
         show={toast.show} 
@@ -155,63 +139,109 @@ function App() {
         sessionId={sessionId}
         onBranchSwitch={handleBranchSwitch}
         currentBranch={currentBranch}
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
       />
       <div className="chat-container">
         <div className="chat-header">
-          <h1>Chat with Claude</h1>
+          <button
+            className={`sidebar-toggle ${isSidebarOpen ? 'open' : ''}`}
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            title={isSidebarOpen ? 'Close map view (Ctrl/Cmd+B)' : 'Open map view (Ctrl/Cmd+B)'}
+          >
+            {isSidebarOpen ? '◀' : '🗺'}
+          </button>
+          <h1>Pathways</h1>
         </div>
         
         <div className="messages-container">
+          {messages.length === 0 && (
+            <div className="empty-state">
+              <h2>Welcome to Pathways!</h2>
+              <p>Start a conversation and split paths at any point to explore different routes.</p>
+              <p>Click the ⤴ button on any AI response to create a new path from that point.</p>
+            </div>
+          )}
           {messages.map((message, index) => (
             <div
               key={message.id || index}
               className={`message ${message.role === 'user' ? 'user-message' : 'assistant-message'}`}
             >
               <div className="message-wrapper">
-                <div className="message-bubble">
-                  {message.content}
+                {message.role === 'assistant' && (
+                  <div className="message-avatar assistant-avatar">AI</div>
+                )}
+                <div className="message-content">
+                  <div className="message-bubble">
+                    {message.role === 'assistant' ? (
+                      <div className="markdown-content">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {message.content}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      message.content
+                    )}
+                  </div>
+                  {message.id && message.role === 'assistant' && (
+                    <div className="message-actions">
+                      {message.children && message.children.length > 1 && (
+                        <span className="branch-indicator">
+                          {message.children.length} paths
+                        </span>
+                      )}
+                      <button
+                        className="fork-button"
+                        onClick={() => createBranch(message.id)}
+                        title="Split path from this response"
+                      >
+                        ⤴
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {message.id && (
-                  <button
-                    className="fork-button"
-                    onClick={() => createBranch(message.id)}
-                    title="Create branch from this message"
-                  >
-                    🍴
-                  </button>
+                {message.role === 'user' && (
+                  <div className="message-avatar user-avatar">U</div>
                 )}
               </div>
             </div>
           ))}
           {isLoading && (
             <div className="message assistant-message">
-              <div className="message-bubble typing">
-                <span></span>
-                <span></span>
-                <span></span>
+              <div className="message-wrapper">
+                <div className="message-avatar assistant-avatar">AI</div>
+                <div className="message-content">
+                  <div className="message-bubble typing">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
         
-        <form onSubmit={sendMessage} className="input-container">
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Type your message..."
-            disabled={!sessionId || isLoading}
-            className="message-input"
-          />
-          <button
-            type="submit"
-            disabled={!sessionId || isLoading || !inputText.trim()}
-            className="send-button"
-          >
-            Send
-          </button>
-        </form>
+        <div className="input-container">
+          <form onSubmit={sendMessage}>
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Type your message..."
+              disabled={!sessionId || isLoading}
+              className="message-input"
+            />
+            <button
+              type="submit"
+              disabled={!sessionId || isLoading || !inputText.trim()}
+              className="send-button"
+            >
+              Send
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
