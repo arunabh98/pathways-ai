@@ -144,7 +144,7 @@ app.post('/api/chat', async (req, res) => {
       ? session.nodes[parentId].content 
       : null;
     
-    const displayName = await generateNodeName(message, previousContent, 'user', session, parentId);
+    const displayName = '';
     
     const userMessage = {
       id: messageId,
@@ -266,13 +266,13 @@ app.post('/api/branch', (req, res) => {
   
   if (!sessionId) {
     return res.status(400).json({ 
-      error: 'SessionId is required' 
+      error: 'SessionId is required in request body' 
     });
   }
   
   if (!fromMessageId) {
     return res.status(400).json({ 
-      error: 'fromMessageId is required' 
+      error: 'fromMessageId is required in request body' 
     });
   }
   

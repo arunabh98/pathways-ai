@@ -36,7 +36,6 @@ function App() {
     initializeSession();
   }, []);
 
-
   const fetchMessages = async () => {
     if (!sessionId) return;
     
@@ -48,7 +47,6 @@ function App() {
       console.error('Failed to fetch messages:', error);
     }
   };
-
 
   const showToast = (message) => {
     setToast({ show: true, message });
