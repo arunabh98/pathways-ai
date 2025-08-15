@@ -13,6 +13,85 @@ const anthropic = new Anthropic({
 
 const sessions = {};
 
+function getRecentConversationContext(session, currentMessageId, limit = 3) {
+  const context = [];
+  let messageId = currentMessageId;
+  let count = 0;
+  
+  // Walk backwards through the conversation to get recent context
+  while (messageId && count < limit) {
+    const node = session.nodes[messageId];
+    if (node) {
+      context.unshift({
+        role: node.role,
+        content: node.content // Use full content for better context
+      });
+      messageId = node.parent;
+      count++;
+    } else {
+      break;
+    }
+  }
+  
+  return context;
+}
+
+async function generateNodeName(content, previousContent, role, session = null, messageId = null) {
+  try {
+    // Handle edge cases
+    if (!content || content.trim() === '') {
+      return role === 'user' ? 'Empty message' : 'Empty response';
+    }
+    
+    // Get conversation context if available
+    let contextMessages = '';
+    if (session && messageId) {
+      const recentMessages = getRecentConversationContext(session, messageId, 3);
+      if (recentMessages.length > 0) {
+        contextMessages = '\n\nRecent conversation context:\n' + 
+          recentMessages.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      }
+    }
+    
+    const prompt = role === 'user'
+      ? `You are generating a navigation label for a conversation tree interface. Users will see this label on a clickable node to understand what this branch of conversation contains.
+
+Generate a clear, descriptive 3-5 word label that captures the essence of this user message. The label should help users quickly identify this conversation branch when navigating.${contextMessages}
+
+Current message: "${content}"
+
+Return ONLY the label, no explanation or additional text.`
+      : `You are generating a navigation label for a conversation tree interface. This label will appear on an AI assistant's response node in a branching conversation view.
+
+Generate a clear, descriptive 3-5 word label that summarizes this AI response. The label should help users understand what this response branch contains when navigating the conversation tree.${contextMessages}
+
+User's question: "${previousContent}"
+AI's response topic: "${content}"
+
+Return ONLY the label, no explanation or additional text.`;
+    
+    const response = await anthropic.messages.create({
+      model: 'claude-3-5-haiku-20241022',
+      max_tokens: 20,
+      temperature: 0.3,
+      messages: [{ 
+        role: 'user', 
+        content: prompt 
+      }]
+    });
+    
+    return response.content[0].text.trim();
+  } catch (error) {
+    console.error('Failed to generate node name:', error);
+    // Improved fallback handling
+    if (!content || content.trim() === '') {
+      return role === 'user' ? 'Empty message' : 'Empty response';
+    }
+    const words = content.split(' ').slice(0, 4).join(' ');
+    return words.length > 30 ? words.substring(0, 27) + '...' : words;
+  }
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -61,10 +140,17 @@ app.post('/api/chat', async (req, res) => {
       ? session.currentBranch[session.currentBranch.length - 1] 
       : null;
     
+    const previousContent = parentId && session.nodes[parentId] 
+      ? session.nodes[parentId].content 
+      : null;
+    
+    const displayName = await generateNodeName(message, previousContent, 'user', session, parentId);
+    
     const userMessage = {
       id: messageId,
       role: 'user',
       content: message,
+      displayName: displayName,
       parent: parentId,
       children: [],
       timestamp: new Date()
@@ -104,10 +190,19 @@ app.post('/api/chat', async (req, res) => {
     });
 
     const assistantMessageId = uuidv4();
+    const assistantDisplayName = await generateNodeName(
+      completion.content[0].text, 
+      message,
+      'assistant',
+      session,
+      messageId
+    );
+    
     const assistantMessage = {
       id: assistantMessageId,
       role: 'assistant',
       content: completion.content[0].text,
+      displayName: assistantDisplayName,
       parent: messageId,
       children: [],
       timestamp: new Date()
@@ -222,6 +317,7 @@ function buildTree(session, nodeId) {
     id: node.id,
     role: node.role,
     content: node.content,
+    displayName: node.displayName,
     timestamp: node.timestamp,
     children: []
   };

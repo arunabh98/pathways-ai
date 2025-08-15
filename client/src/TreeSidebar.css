@@ -90,10 +90,20 @@
 
 .tree-container .rd3t-link {
   stroke: #d1d5db !important;
-  stroke-width: 2 !important;
-  stroke-opacity: 0.6 !important;
+  stroke-width: 2.5 !important;
+  stroke-opacity: 0.5 !important;
   fill: none !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08));
+  transition: all 0.3s ease !important;
 }
+
+.tree-container .rd3t-link:hover {
+  stroke-opacity: 0.8 !important;
+  stroke-width: 3 !important;
+}
+
 
 .tree-loading,
 .tree-empty {
@@ -128,6 +138,14 @@
   40% {
     box-shadow: 0 0 0 #9ca3af, 8px 0 0 #6b7280, 16px 0 0 #9ca3af;
   }
+}
+
+.tree-container svg {
+  cursor: grab;
+}
+
+.tree-container svg:active {
+  cursor: grabbing;
 }
 
 .tree-legend {
@@ -180,6 +198,14 @@
   background: linear-gradient(135deg, #a855f7, #7c3aed);
   border-color: rgba(147, 51, 234, 0.5);
   box-shadow: 0 2px 8px rgba(147, 51, 234, 0.3);
+}
+
+.node-label:hover {
+  transform: scale(1.03);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.12) !important;
+  background: rgba(255, 255, 255, 1) !important;
+  font-weight: 600 !important;
+  color: #1f2937 !important;
 }
 
 @media (max-width: 768px) {

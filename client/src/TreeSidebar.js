@@ -50,8 +50,8 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
     if (!node) return null;
     
     const truncateContent = (content) => {
-      if (content.length > 30) {
-        return content.substring(0, 30) + '...';
+      if (content.length > 40) {
+        return content.substring(0, 37) + '...';
       }
       return content;
     };
@@ -59,7 +59,7 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
     const isInCurrentBranch = currentBranch && currentBranch.includes(node.id);
     
     return {
-      name: truncateContent(node.content),
+      name: node.displayName || truncateContent(node.content),
       attributes: {
         id: node.id,
         role: node.role,
@@ -110,6 +110,16 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
             <stop offset="100%" stopColor={isActive ? '#7c3aed' : (isUser ? '#6b7280' : '#3b82f6')} />
           </linearGradient>
         </defs>
+        {isActive && (
+          <circle
+            r="28"
+            fill="none"
+            stroke="#a855f7"
+            strokeWidth="1.5"
+            opacity="0.4"
+            strokeDasharray="4 2"
+          />
+        )}
         <circle
           r="22"
           fill={`url(#gradient-${nodeDatum.attributes.id})`}
@@ -140,41 +150,50 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
             textShadow: '0 1px 2px rgba(0,0,0,0.2)'
           }}
         >
-          {isUser ? 'U' : 'A'}
+          {isUser ? 'U' : 'AI'}
         </text>
-        <foreignObject x="-70" y="32" width="140" height="45">
-          <div style={{
-            fontSize: '11px',
-            textAlign: 'center',
-            color: isActive ? '#7c3aed' : '#4b5563',
-            wordWrap: 'break-word',
-            lineHeight: '1.3',
-            fontWeight: isActive ? '500' : '400',
-            padding: '4px',
-            background: 'rgba(255, 255, 255, 0.9)',
-            borderRadius: '6px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-            pointerEvents: 'none'
-          }}>
-            {nodeDatum.name}
-          </div>
-        </foreignObject>
+        {!isUser && (
+          <foreignObject x="-75" y="35" width="150" height="60">
+            <div className="node-label" style={{
+              fontSize: '11px',
+              textAlign: 'center',
+              color: isActive ? '#7c3aed' : '#4b5563',
+              lineHeight: '1.4',
+              fontWeight: isActive ? '600' : '500',
+              padding: '5px 6px',
+              background: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: '8px',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+              transition: 'all 0.2s ease',
+              cursor: 'pointer',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'normal',
+              wordBreak: 'break-word',
+              maxWidth: '140px',
+              margin: '0 auto'
+            }}>
+              {nodeDatum.name}
+            </div>
+          </foreignObject>
+        )}
       </g>
     );
   };
 
   const treeConfig = {
     orientation: 'horizontal',
-    nodeSize: { x: 110, y: 160 },
-    separation: { siblings: 1.2, nonSiblings: 2 },
-    translate: { x: 60, y: 200 },
-    zoom: 0.75,
-    scaleExtent: { min: 0.1, max: 2 },
+    nodeSize: { x: 100, y: 160 },
+    separation: { siblings: 1.3, nonSiblings: 1.6 },
+    translate: { x: 80, y: 200 },
+    zoom: 0.8,
+    scaleExtent: { min: 0.2, max: 2 },
     zoomable: true,
     draggable: true,
     collapsible: false,
     pathFunc: 'diagonal',
-    transitionDuration: 500
+    transitionDuration: 500,
+    enableLegacyTransitions: true
   };
 
   return (
