@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Tree from 'react-d3-tree';
 import axios from 'axios';
@@ -10,7 +10,25 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredNode, setHoveredNode] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [containerDimensions, setContainerDimensions] = useState({ width: 400, height: 600 });
   const treeContainer = useRef(null);
+
+  // Update container dimensions when sidebar opens or resizes
+  useEffect(() => {
+    if (isOpen && treeContainer.current) {
+      const updateDimensions = () => {
+        setContainerDimensions({
+          width: treeContainer.current.offsetWidth || 400,
+          height: treeContainer.current.offsetHeight || 600
+        });
+      };
+      
+      // Update immediately and on resize
+      updateDimensions();
+      window.addEventListener('resize', updateDimensions);
+      return () => window.removeEventListener('resize', updateDimensions);
+    }
+  }, [isOpen]);
 
   // Keyboard shortcut for toggling sidebar
   useEffect(() => {
@@ -220,18 +238,94 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
     );
   };
 
-  const treeConfig = {
+  // Calculate tree metrics with memoization
+  const treeMetrics = useMemo(() => {
+    if (!rawTreeData) return { depth: 0, maxBranches: 0 };
+    
+    let maxDepth = 0;
+    let maxBranches = 0;
+    
+    const traverse = (node, depth = 0) => {
+      if (!node) return;
+      maxDepth = Math.max(maxDepth, depth);
+      if (node.children && Array.isArray(node.children)) {
+        maxBranches = Math.max(maxBranches, node.children.length);
+        node.children.forEach(child => traverse(child, depth + 1));
+      }
+    };
+    
+    traverse(rawTreeData);
+    return { depth: maxDepth, maxBranches };
+  }, [rawTreeData]);
+
+  // Progressive tree configuration based on depth and complexity
+  const treeConfig = useMemo(() => {
+    const { depth, maxBranches } = treeMetrics;
+    const containerWidth = containerDimensions.width;
+    
+    // Progressive node sizing with minimum bounds
+    const calculateNodeSize = () => {
+      // Horizontal spacing decreases more aggressively with depth
+      const x = Math.max(60, 110 - (depth * 5));
+      // Vertical spacing based on both depth and branches
+      const y = Math.max(100, 160 - (depth * 4) - (maxBranches * 3));
+      return { x, y };
+    };
+    
+    const nodeSize = calculateNodeSize();
+    
+    // Calculate zoom to fit the tree width in container
+    // Account for: tree width + label overhang (150px) + margins
+    const calculateZoom = () => {
+      const treeWidth = (depth + 1) * nodeSize.x + 150; // Add 150px for labels and margins
+      const fitZoom = (containerWidth * 0.95) / treeWidth; // Use 95% of container width
+      
+      // Also apply depth-based limits (less aggressive)
+      let maxZoom = 1.0;
+      if (depth > 4) maxZoom = 0.85;
+      if (depth > 6) maxZoom = 0.75;
+      if (depth > 10) maxZoom = 0.65;
+      
+      // Return the smaller of fit zoom and max zoom, with minimum of 0.35
+      return Math.max(0.35, Math.min(fitZoom, maxZoom));
+    };
+    
+    // Progressive separation based on complexity
+    const calculateSeparation = () => {
+      const baseSiblings = 1.4;
+      const baseNonSiblings = 1.7;
+      
+      // Tighten separation as tree grows
+      const depthFactor = Math.min(depth * 0.03, 0.3); // Max 30% reduction
+      const branchFactor = Math.min(maxBranches * 0.02, 0.2); // Max 20% reduction
+      
+      return {
+        siblings: Math.max(0.9, baseSiblings - depthFactor - branchFactor),
+        nonSiblings: Math.max(1.1, baseNonSiblings - depthFactor - branchFactor)
+      };
+    };
+    
+    // Fixed translate to ensure consistent positioning
+    const translateX = 60; // Start 60px from left for better use of space
+    const translateY = 250; // Center vertically
+    
+    return {
+      nodeSize: nodeSize,
+      separation: calculateSeparation(),
+      zoom: calculateZoom(),
+      translate: { x: translateX, y: translateY }
+    };
+  }, [treeMetrics, containerDimensions.width]);
+
+  const fullTreeConfig = {
     orientation: 'horizontal',
-    nodeSize: { x: 100, y: 160 },
-    separation: { siblings: 1.3, nonSiblings: 1.6 },
-    translate: { x: 80, y: 200 },
-    zoom: 0.8,
+    ...treeConfig,
     scaleExtent: { min: 0.1, max: 3 },
     zoomable: true,
     draggable: true,
     collapsible: false,
     pathFunc: 'diagonal',
-    transitionDuration: treeData && Object.keys(treeData).length > 50 ? 0 : 300,
+    transitionDuration: 300,
     enableLegacyTransitions: false,
     initialDepth: undefined,
     depthFactor: undefined,
@@ -277,14 +371,11 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
           ) : treeData ? (
             <Tree
               data={treeData}
-              {...treeConfig}
+              {...fullTreeConfig}
               renderCustomNodeElement={renderCustomNode}
               onNodeMouseOver={handleNodeMouseOver}
               onNodeMouseOut={handleNodeMouseOut}
-              dimensions={{
-                width: treeContainer.current?.offsetWidth || 400,
-                height: treeContainer.current?.offsetHeight || 600
-              }}
+              dimensions={containerDimensions}
             />
           ) : (
             <div className="tree-empty">No conversation yet</div>
