@@ -10,7 +10,7 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredNode, setHoveredNode] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [containerDimensions, setContainerDimensions] = useState({ width: 400, height: 600 });
+  const [containerDimensions, setContainerDimensions] = useState({ width: 500, height: 600 });
   const treeContainer = useRef(null);
 
   // Update container dimensions when sidebar opens or resizes
@@ -18,7 +18,7 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
     if (isOpen && treeContainer.current) {
       const updateDimensions = () => {
         setContainerDimensions({
-          width: treeContainer.current.offsetWidth || 400,
+          width: treeContainer.current.offsetWidth || 500,
           height: treeContainer.current.offsetHeight || 600
         });
       };

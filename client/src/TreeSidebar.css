@@ -1,8 +1,8 @@
 .tree-sidebar {
   position: fixed;
-  left: -400px;
+  left: -500px;
   top: 0;
-  width: 400px;
+  width: 500px;
   height: 100vh;
   background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.06), 1px 0 1px rgba(0, 0, 0, 0.04);
