@@ -150,6 +150,26 @@ body {
   animation-delay: 0.3s;
 }
 
+.empty-state p.keyboard-hint {
+  margin-top: 16px;
+  font-size: 14px;
+  color: #9ca3af;
+  animation-delay: 0.4s;
+}
+
+.empty-state kbd {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  font-size: 13px;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

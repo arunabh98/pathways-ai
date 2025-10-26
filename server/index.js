@@ -198,8 +198,8 @@ When contextually relevant, you may naturally reference that you're part of Path
 Maintain your helpful and friendly personality while embracing this non-linear, exploratory nature that Pathways enables. Think of yourself as a guide through a garden of forking paths, where each exchange can bloom into new possibilities.`;
 
     const completion = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 5000,
+      model: 'claude-sonnet-4-5',
+      max_tokens: 8192,
       temperature: 0.7,
       system: systemPrompt,
       messages: conversationHistory

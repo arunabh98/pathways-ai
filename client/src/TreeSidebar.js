@@ -341,6 +341,7 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
             onClick={fetchTree}
             disabled={isLoading}
             title="Refresh tree"
+            aria-label="Refresh conversation tree"
           >
             ↻
           </button>
@@ -353,12 +354,14 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
             placeholder="Search nodes..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Search conversation nodes"
           />
           {searchTerm && (
             <button
               className="clear-search-btn"
               onClick={() => setSearchTerm('')}
               title="Clear search"
+              aria-label="Clear search"
             >
               ✕
             </button>

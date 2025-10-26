@@ -14,6 +14,7 @@ function App() {
   const [currentBranch, setCurrentBranch] = useState([]);
   const [toast, setToast] = useState({ show: false, message: '' });
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -121,6 +122,7 @@ function App() {
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   };
 
@@ -146,6 +148,7 @@ function App() {
             className={`sidebar-toggle ${isSidebarOpen ? 'open' : ''}`}
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             title={isSidebarOpen ? 'Close map view (Ctrl/Cmd+B)' : 'Open map view (Ctrl/Cmd+B)'}
+            aria-label={isSidebarOpen ? 'Close conversation map' : 'Open conversation map'}
           >
             {isSidebarOpen ? '◀' : '🗺'}
           </button>
@@ -158,6 +161,7 @@ function App() {
               <h2>Welcome to Pathways!</h2>
               <p>Start a conversation and split paths at any point to explore different routes.</p>
               <p>Click the ⤴ button on any AI response to create a new path from that point.</p>
+              <p className="keyboard-hint">Press <kbd>Ctrl/Cmd+B</kbd> to toggle the conversation map</p>
             </div>
           )}
           {messages.map((message, index) => (
@@ -192,6 +196,7 @@ function App() {
                         className="fork-button"
                         onClick={() => createBranch(message.id)}
                         title="Split path from this response"
+                        aria-label="Create new path from this message"
                       >
                         ⤴
                       </button>
@@ -224,19 +229,22 @@ function App() {
         <div className="input-container">
           <form onSubmit={sendMessage}>
             <input
+              ref={inputRef}
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Type your message..."
               disabled={!sessionId || isLoading}
               className="message-input"
+              aria-label="Type your message"
             />
             <button
               type="submit"
               disabled={!sessionId || isLoading || !inputText.trim()}
               className="send-button"
+              aria-label={isLoading ? 'Sending message...' : 'Send message'}
             >
-              Send
+              {isLoading ? 'Sending...' : 'Send'}
             </button>
           </form>
         </div>

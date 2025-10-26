@@ -18,7 +18,7 @@ function Toast({ message, show, duration = 3000, onClose }) {
   if (!show) return null;
 
   return (
-    <div className="toast-container">
+    <div className="toast-container" role="status" aria-live="polite" aria-atomic="true">
       <div className="toast">
         <span className="toast-message">{message}</span>
       </div>
