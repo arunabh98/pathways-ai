@@ -41,3 +41,9 @@ coverage/
 .npm
 .cache
 .eslintcache
+
+# Demo videos / large media
+demo/
+*.mp4
+*.mov
+*.webm
