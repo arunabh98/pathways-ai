@@ -4,13 +4,59 @@ import Tree from 'react-d3-tree';
 import axios from 'axios';
 import './TreeSidebar.css';
 
-function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOpen }) {
+// Walk the nested tree to return the list of nodes from the root down to the
+// node with the given id (inclusive), or null if not found.
+function findPathToNode(node, targetId) {
+  if (!node) return null;
+  if (node.id === targetId) return [node];
+  if (node.children) {
+    for (const child of node.children) {
+      const sub = findPathToNode(child, targetId);
+      if (sub) return [node, ...sub];
+    }
+  }
+  return null;
+}
+
+// Count the leaves (conversation endpoints) of the tree. Two or more leaves
+// means there is genuine branching and therefore something to compare.
+function countLeaves(node) {
+  if (!node) return 0;
+  if (!node.children || node.children.length === 0) return 1;
+  return node.children.reduce((sum, child) => sum + countLeaves(child), 0);
+}
+
+function findNodeById(node, targetId) {
+  if (!node) return null;
+  if (node.id === targetId) return node;
+  if (node.children) {
+    for (const child of node.children) {
+      const found = findNodeById(child, targetId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function nodeLabel(node) {
+  if (!node) return '';
+  if (node.displayName && node.displayName.trim()) return node.displayName.trim();
+  const content = (node.content || '').trim();
+  if (!content) return node.role === 'user' ? 'Empty message' : 'Empty response';
+  return content.length > 32 ? content.substring(0, 29) + '...' : content;
+}
+
+const COMPARE_COLORS = ['#ec4899', '#14b8a6'];
+
+function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOpen, onCompare, inert }) {
   const [rawTreeData, setRawTreeData] = useState(null);
   const [treeData, setTreeData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredNode, setHoveredNode] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [containerDimensions, setContainerDimensions] = useState({ width: 500, height: 600 });
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForCompare, setSelectedForCompare] = useState([]);
   const treeContainer = useRef(null);
 
   // Update container dimensions when sidebar opens or resizes
@@ -103,21 +149,58 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
 
   const handleNodeClick = async (nodeData) => {
     const messageId = nodeData.data ? nodeData.data.attributes.id : nodeData.attributes.id;
-    
+
+    // In compare mode a click selects/deselects the node instead of switching
+    // the active branch, so the current conversation is left untouched.
+    if (compareMode) {
+      toggleCompareSelection(messageId);
+      return;
+    }
+
     try {
       await axios.post('http://localhost:3001/api/branch', {
         sessionId,
         fromMessageId: messageId
       });
-      
+
       await fetchTree();
-      
+
       if (onBranchSwitch) {
         onBranchSwitch();
       }
     } catch (error) {
       console.error('Failed to switch branch:', error);
     }
+  };
+
+  // Toggle a node in the compare selection, capping the selection at two.
+  // Selecting a third node drops the oldest so the latest two always win.
+  const toggleCompareSelection = (nodeId) => {
+    setSelectedForCompare(prev => {
+      if (prev.includes(nodeId)) return prev.filter(id => id !== nodeId);
+      if (prev.length >= 2) return [prev[1], nodeId];
+      return [...prev, nodeId];
+    });
+  };
+
+  const enterCompareMode = () => {
+    setSelectedForCompare([]);
+    setCompareMode(true);
+  };
+
+  const cancelCompare = () => {
+    setCompareMode(false);
+    setSelectedForCompare([]);
+  };
+
+  const launchCompare = () => {
+    if (selectedForCompare.length !== 2 || !rawTreeData) return;
+    const pathA = findPathToNode(rawTreeData, selectedForCompare[0]);
+    const pathB = findPathToNode(rawTreeData, selectedForCompare[1]);
+    if (!pathA || !pathB) return;
+    if (onCompare) onCompare(pathA, pathB);
+    setCompareMode(false);
+    setSelectedForCompare([]);
   };
 
   const handleNodeMouseOver = (nodeData) => {
@@ -134,9 +217,12 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
     const isActive = nodeDatum.attributes.isActive;
     const isHovered = hoveredNode === nodeDatum.attributes.id;
     const isSearchMatch = nodeDatum.attributes.isSearchMatch;
-    
+    const compareIndex = compareMode ? selectedForCompare.indexOf(nodeDatum.attributes.id) : -1;
+    const isSelectedForCompare = compareIndex >= 0;
+    const compareColor = compareIndex >= 0 ? COMPARE_COLORS[compareIndex] : null;
+
     return (
-      <g 
+      <g
         onClick={() => !isUser && handleNodeClick({ data: nodeDatum })}
         onMouseEnter={() => handleNodeMouseOver({ data: nodeDatum })}
         onMouseLeave={handleNodeMouseOut}
@@ -165,6 +251,14 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
             strokeWidth="1.5"
             opacity="0.4"
             strokeDasharray="4 2"
+          />
+        )}
+        {isSelectedForCompare && (
+          <circle
+            r="30"
+            fill="none"
+            stroke={compareColor}
+            strokeWidth="3"
           />
         )}
         {isHovered && (
@@ -234,9 +328,36 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
             </div>
           </foreignObject>
         )}
+        {isSelectedForCompare && (
+          <g transform="translate(17, -17)" style={{ pointerEvents: 'none' }}>
+            <circle r="10" fill={compareColor} stroke="#ffffff" strokeWidth="2" />
+            <text
+              fill="white"
+              fontSize="11"
+              fontWeight="700"
+              x="0"
+              y="4"
+              textAnchor="middle"
+            >
+              {compareIndex + 1}
+            </text>
+          </g>
+        )}
       </g>
     );
   };
+
+  // Comparison is only possible once the tree actually branches (>= 2 leaves).
+  const leafCount = useMemo(() => countLeaves(rawTreeData), [rawTreeData]);
+  const canCompare = leafCount >= 2;
+
+  // If branching disappears (e.g. tree resets), drop out of compare mode.
+  useEffect(() => {
+    if (!canCompare && compareMode) {
+      setCompareMode(false);
+      setSelectedForCompare([]);
+    }
+  }, [canCompare, compareMode]);
 
   // Calculate tree metrics with memoization
   const treeMetrics = useMemo(() => {
@@ -333,20 +454,70 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
   };
 
   return (
-    <div className={`tree-sidebar ${isOpen ? 'open' : ''}`}>
+    <div className={`tree-sidebar ${isOpen ? 'open' : ''}`} inert={inert ? true : undefined}>
         <div className="sidebar-header">
           <h2>Conversation Map</h2>
-          <button
-            className="refresh-btn"
-            onClick={fetchTree}
-            disabled={isLoading}
-            title="Refresh tree"
-            aria-label="Refresh conversation tree"
-          >
-            ↻
-          </button>
+          <div className="header-actions">
+            {canCompare && (
+              <button
+                className={`compare-toggle-btn ${compareMode ? 'active' : ''}`}
+                onClick={compareMode ? cancelCompare : enterCompareMode}
+                title={compareMode ? 'Exit compare mode' : 'Compare two paths side by side'}
+                aria-label={compareMode ? 'Exit compare mode' : 'Compare two paths side by side'}
+                aria-pressed={compareMode}
+              >
+                ⇆ Compare
+              </button>
+            )}
+            <button
+              className="refresh-btn"
+              onClick={fetchTree}
+              disabled={isLoading}
+              title="Refresh tree"
+              aria-label="Refresh conversation tree"
+            >
+              ↻
+            </button>
+          </div>
         </div>
-        
+
+        {compareMode && (
+          <div className="compare-banner">
+            <div className="compare-banner-info">
+              <span className="compare-banner-text">
+                Tap two responses to compare them ({selectedForCompare.length}/2)
+              </span>
+              {selectedForCompare.length > 0 && (
+                <div className="compare-chips">
+                  {selectedForCompare.map((id, idx) => (
+                    <span key={id} className={`compare-chip chip-${idx === 0 ? 'a' : 'b'}`}>
+                      <span className="chip-num">{idx + 1}</span>
+                      <span className="chip-label">{nodeLabel(findNodeById(rawTreeData, id))}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="compare-banner-actions">
+              <button
+                className="compare-launch-btn"
+                onClick={launchCompare}
+                disabled={selectedForCompare.length !== 2}
+                aria-label="Open side-by-side comparison"
+              >
+                Compare
+              </button>
+              <button
+                className="compare-cancel-btn"
+                onClick={cancelCompare}
+                aria-label="Cancel comparison"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="search-container">
           <input
             type="text"
@@ -410,7 +581,9 @@ TreeSidebar.propTypes = {
   onBranchSwitch: PropTypes.func,
   currentBranch: PropTypes.arrayOf(PropTypes.string),
   isOpen: PropTypes.bool.isRequired,
-  setIsOpen: PropTypes.func.isRequired
+  setIsOpen: PropTypes.func.isRequired,
+  onCompare: PropTypes.func,
+  inert: PropTypes.bool
 };
 
 TreeSidebar.defaultProps = {

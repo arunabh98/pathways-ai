@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import TreeSidebar from './TreeSidebar';
 import Toast from './Toast';
+import CompareView from './CompareView';
 import './App.css';
 
 function App() {
@@ -127,12 +128,18 @@ function App() {
   };
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [comparePaths, setComparePaths] = useState(null);
+  const isComparing = comparePaths !== null;
+
+  const handleCompare = (pathA, pathB) => {
+    setComparePaths({ pathA, pathB });
+  };
 
   return (
     <div className={`App ${isSidebarOpen ? 'sidebar-open' : ''}`}>
-      <Toast 
-        message={toast.message} 
-        show={toast.show} 
+      <Toast
+        message={toast.message}
+        show={toast.show}
         onClose={() => setToast({ show: false, message: '' })}
       />
       <TreeSidebar
@@ -141,8 +148,22 @@ function App() {
         currentBranch={currentBranch}
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
+        onCompare={handleCompare}
+        inert={isComparing}
       />
-      <div className="chat-container">
+      {comparePaths && (
+        <CompareView
+          pathA={comparePaths.pathA}
+          pathB={comparePaths.pathB}
+          onClose={() => setComparePaths(null)}
+        />
+      )}
+      {/* While the read-only compare overlay is open, take the chat region out
+          of the focus/interaction order so it can't be reached (e.g. via Tab)
+          and no messages can be sent — comparing must not disturb the chat.
+          Note: `inert` must be a boolean here; React 19 treats an empty-string
+          value as false and drops the attribute. */}
+      <div className="chat-container" inert={isComparing ? true : undefined}>
         <div className="chat-header">
           <button
             className={`sidebar-toggle ${isSidebarOpen ? 'open' : ''}`}

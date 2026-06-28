@@ -1,0 +1,308 @@
+.compare-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: #f7f8fa;
+  display: flex;
+  flex-direction: column;
+  animation: compareFadeIn 0.25s ease;
+}
+
+@keyframes compareFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.compare-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+}
+
+.compare-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.compare-close {
+  background: #ffffff;
+  color: #1f2937;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.compare-close:hover {
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.compare-close:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+.compare-identical-note {
+  text-align: center;
+  padding: 10px 16px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: 1px solid #fde68a;
+  flex-shrink: 0;
+}
+
+.compare-columns {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.compare-column {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-top: 3px solid var(--accent, #6366f1);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.compare-column.accent-a {
+  --accent: #ec4899;
+  --accent-soft: rgba(236, 72, 153, 0.1);
+}
+
+.compare-column.accent-b {
+  --accent: #14b8a6;
+  --accent-soft: rgba(20, 184, 166, 0.1);
+}
+
+.compare-column-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.compare-badge {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent, #6366f1);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+}
+
+.compare-column-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compare-column-meta {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.compare-column-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.compare-column-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.compare-column-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.compare-column-body::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.compare-column-body::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.compare-shared-tag {
+  align-self: center;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  padding: 2px 10px;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  margin-bottom: 2px;
+}
+
+.compare-message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 92%;
+  transition: opacity 0.2s ease;
+}
+
+.compare-message.assistant {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.compare-message.user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+/* Shared prefix is rendered muted so the divergent part stands out. */
+.compare-message.shared {
+  opacity: 0.62;
+}
+
+.compare-message-role {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  padding: 0 6px;
+}
+
+.compare-message-bubble {
+  padding: 10px 14px;
+  border-radius: 14px;
+  line-height: 1.6;
+  font-size: 14px;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+.compare-message.assistant .compare-message-bubble {
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.compare-message.user .compare-message-bubble {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  color: #1f2937;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.compare-diverge-marker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  color: var(--accent, #6366f1);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.compare-diverge-marker::before,
+.compare-diverge-marker::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent, #6366f1);
+  opacity: 0.4;
+}
+
+/* Narrow screens: keep both columns side-by-side but tighten spacing so
+   the comparison stays usable. */
+@media (max-width: 768px) {
+  .compare-columns {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .compare-column-body {
+    padding: 12px 10px 24px;
+    gap: 10px;
+  }
+
+  .compare-message {
+    max-width: 100%;
+  }
+
+  .compare-message-bubble {
+    font-size: 13px;
+    padding: 8px 11px;
+  }
+
+  .compare-column-header {
+    padding: 10px 12px;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  /* Let the branch label wrap instead of ellipsing to a few characters, so
+     it stays readable in the narrower columns. */
+  .compare-column-title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.3;
+  }
+
+  .compare-column-meta {
+    display: none;
+  }
+}
