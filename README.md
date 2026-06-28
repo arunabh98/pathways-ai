@@ -76,7 +76,7 @@ App opens automatically at `http://localhost:3000`
 
 ## Tech Stack
 
-React • Express • Claude Sonnet 4.5 • D3.js for tree visualization
+React • Express • Claude Sonnet 4.6 • D3.js for tree visualization
 
 ---
 

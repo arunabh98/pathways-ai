@@ -71,7 +71,7 @@ AI's response topic: "${content}"
 Return ONLY the label, no explanation or additional text.`;
     
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
+      model: 'claude-haiku-4-5',
       max_tokens: 20,
       temperature: 0.3,
       messages: [{ 
@@ -198,9 +198,15 @@ When contextually relevant, you may naturally reference that you're part of Path
 Maintain your helpful and friendly personality while embracing this non-linear, exploratory nature that Pathways enables. Think of yourself as a guide through a garden of forking paths, where each exchange can bloom into new possibilities.`;
 
     const completion = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-4-6',
       max_tokens: 8192,
       temperature: 0.7,
+      // Sonnet 4.6 defaults to effort "high" (extra reasoning, higher latency/cost).
+      // Keep Pathways' fast, conversational feel by disabling thinking and using
+      // low effort — matches the prior Sonnet 4.5 no-thinking behavior. Raise the
+      // effort (or switch to adaptive thinking) if deeper reasoning is wanted.
+      thinking: { type: 'disabled' },
+      output_config: { effort: 'low' },
       system: systemPrompt,
       messages: conversationHistory
     });
