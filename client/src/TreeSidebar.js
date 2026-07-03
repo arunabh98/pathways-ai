@@ -46,6 +46,9 @@ function nodeLabel(node) {
   return content.length > 32 ? content.substring(0, 29) + '...' : content;
 }
 
+// Path A / B selection colors for the compare overlay. Kept in sync with the
+// --path-a / --path-b tokens in index.css (and accent-a/accent-b in
+// CompareView.css) — change all together.
 const COMPARE_COLORS = ['#ec4899', '#14b8a6'];
 
 function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOpen, onCompare, inert }) {
@@ -239,8 +242,8 @@ function TreeSidebar({ sessionId, onBranchSwitch, currentBranch, isOpen, setIsOp
             </feMerge>
           </filter>
           <linearGradient id={`gradient-${nodeDatum.attributes.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={isSearchMatch ? '#fbbf24' : isActive ? '#a855f7' : (isUser ? '#9ca3af' : '#60a5fa')} />
-            <stop offset="100%" stopColor={isSearchMatch ? '#f59e0b' : isActive ? '#7c3aed' : (isUser ? '#6b7280' : '#3b82f6')} />
+            <stop offset="0%" stopColor={isSearchMatch ? '#fbbf24' : isActive ? '#a855f7' : (isUser ? '#a1a1aa' : '#818cf8')} />
+            <stop offset="100%" stopColor={isSearchMatch ? '#f59e0b' : isActive ? '#7c3aed' : (isUser ? '#71717a' : '#6366f1')} />
           </linearGradient>
         </defs>
         {(isActive || isSearchMatch) && (
